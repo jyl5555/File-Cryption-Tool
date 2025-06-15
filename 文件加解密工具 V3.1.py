@@ -1,0 +1,139 @@
+__author__ = '城南小学2019(04)班 老煜'
+__version__ = '3.1.0'
+import os
+import hashlib
+from tkinter import Label,Entry,Button,Text,Tk,messagebox,Menu,simpledialog,END
+import tkinter.filedialog as file
+from random import choice
+import windnd     #pip install windnd
+from tkinter.ttk import Progressbar
+font = ('Consolas','10')
+key = ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f','g','h','i','j','k','l','m','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
+root = Tk()
+root.title('文件加解密工具')
+name = Label(root,text='加密或解密的文件名(可拖入):').grid(row=1,column=1)
+name_2 = Entry(root,font=font)
+name_2.grid(row=1,column=2)
+
+password_1 = Label(root,text='加密或解密的密码或密钥:').grid(row=2,column=1)
+password_2 = Entry(root,font=font)
+password_2.grid(row=2,column=2)
+data_1 = Label(root,text='保存路径(可不填):').grid(row=3,column=1)
+data_2 = Entry(root,font=font)
+data_2.grid(row=3,column=2)
+
+
+def main():
+    name_1 = name_2.get()
+    password = password_2.get()
+    if os.path.exists(name_1) == True:
+        pass
+    else:
+        messagebox.showerror('错误','文件不存在！')
+        root.destroy()
+    data = data_2.get()
+
+    if name_1.split(".")[1][-4:] == 'DATA':
+        F = name_1.split(".")[1].replace("DATA", "")
+        if os.path.split(data)[0] == '':
+            if os.path.split(name_1)[0] == '':
+                data = os.path.split(name_1)[-1].split(".")[0] + '.' + F
+            else:
+                data = os.path.split(name_1)[0] + '/' + os.path.split(name_1)[-1].split(".")[0] + '.' + F
+        else:
+            data = data + '/' + os.path.split(name_1)[-1].split(".")[0] + '.' + F
+    else:
+        # 保存路径
+        if os.path.split(data)[0] == '':
+            if os.path.split(name_1)[0] == '':
+                data = name_1.split(".")[1]
+                data = os.path.split(name_1)[-1].split(".")[0] + '.' + data + 'DATA'
+            else:
+                data = name_1.split(".")[1]
+                data = os.path.split(name_1)[0] + '/' + os.path.split(name_1)[-1].split(".")[0] + '.' + data + 'DATA'
+        else:
+            name_3 = name_1.split(".")[1]
+            data = data + '/' + os.path.split(name_1)[-1].split(".")[0] + '.' + name_3 + 'DATA'
+
+
+
+    source_size = os.path.getsize(name_1)
+    a = open(name_1, "rb")
+    b = open(data, "wb")
+
+
+
+
+    hl = hashlib.md5()
+    hl.update(password.encode(encoding='utf-8'))
+    password_list = hl.hexdigest()
+
+    hl.update(password_list.encode(encoding='utf-8'))
+    password_list2 = hl.hexdigest()
+    password_data = password_list+password_list2
+
+
+    x = Tk()
+    x.title("进度")
+    x.geometry("200x120")
+    progress = Progressbar(x)
+    progress.pack(pady=20)
+    progress["maximum"] = source_size
+    progress["value"] = 0
+    count = 0  #索引
+    for now in a:
+        for nowByte in now:
+            newByte = nowByte ^ ord(password_data[count % len(password_data)])
+            count += 1
+            b.write(bytes([newByte]))
+        out_size = os.path.getsize(data)
+        progress["value"] = out_size
+        x.update()
+    x.destroy()
+
+    a.close()
+    b.close()
+    root.destroy()
+
+def openfile():
+    s = file.askopenfilename(title='浏览文件',filetypes=[('所有文件','*')])
+    name_2.delete(0,END)
+    name_2.insert(0,s)
+def savefile():
+    d = file.askdirectory(title='保存文件路径')
+    data_2.delete(0,END)
+    data_2.insert(0,d)
+def show():
+    c = Tk()
+    c.title('关于')
+    zh = '文件加密工具V3.1\nby 城南小学2019(4)班 老煜\n本工具由一个小学生在机房练习无聊之时\n用python开发而成，可以加解密文件。'
+    z = Text(c)
+    z.pack()
+    z.insert(END,zh)
+    z.config(state='disabled')
+def keys():
+    if messagebox.askyesno('生成密钥','本功能会随机生成密钥，务必全部复制！是否继续？'):
+        length = int(simpledialog.askstring('生成密钥','输入要生成的密钥的长度:'))
+        pas = ''
+        for i in range(length):
+            h = choice(key)
+            pas = pas + str(h)
+        password_2.delete(0,END)
+        password_2.insert(0,pas)
+def dragged_file(files):
+    file = '\n'.join(item.decode('gbk') for item in files)
+    name_2.delete(0,END)
+    name_2.insert(0,file)
+name_3 = Button(root,text='浏览...',command=openfile).grid(row=1,column=3)
+data_3 = Button(root,text='浏览...',command=savefile).grid(row=3,column=3)
+password_3 = Button(root,text='生成密钥',command=keys).grid(row=2,column=3)
+button = Button(root,text='加密或解密',command=main).grid(row=4,column=2)
+m = Menu(root,tearoff=0)
+ab = Menu(m,tearoff=0)
+ab.add_command(label='关于...',command=show)
+ab.add_separator()
+m.add_cascade(label='关于',menu=ab)
+root.config(menu=m)
+windnd.hook_dropfiles(root,func=dragged_file)
+root.mainloop()
+
